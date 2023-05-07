@@ -1,9 +1,9 @@
 import { Form, Input, Select, Button } from "antd"
 import { columns } from "../Table Data/TableLayout";
 import { FormContainer } from "../Styles/Form.style";
-import { useStore } from "../zustand/store";
+import { useStore, emptyFormData } from "../zustand/store";
 import { useState } from "react";
-import { postUser } from "../API/apiData";
+import { postUser, editUser } from "../API/apiData";
 
 export type formType = {
   name: string,
@@ -16,19 +16,14 @@ export type formType = {
 
 function InputForm() {
 
-  // *NOTE: email & phone validation?
-
   const showForm = useStore((store) => store.showForm);
   const addUser = useStore((store) => store.addUser);
+  const editUserTemp = useStore((store) => store.editUserTemp);
+  const fillForm = useStore((store) => store.fillForm);
 
-  const[formData, setFormData] = useState<formType>({
-    name: '',
-    email: '',
-    city: '',
-    street: '',
-    gender: '',
-    phone: ''
-  })
+  const defaultData = useStore((store) => store.defaultData); // default data for form editing.
+
+  const[formData, setFormData] = useState<formType>(defaultData.data)
   
   const layout = {
     labelCol: { span: 8 },
@@ -36,28 +31,51 @@ function InputForm() {
   };
 
   const handleSubmit = () => {
-    postUser('/users', {
-      name: formData.name,
-      email: formData.email,
-      address: {
-        city: formData.city,
-        street: formData.street,
-      },
-      gender: formData.gender,
-      phone: formData.phone
-    })
-      .then((res) => {
-        addUser(res.data.user); // adding data to Zustland for display purposes
-        console.log(res)
+    if (Object.values(defaultData.data).every((input) => input === '')) { // new item is being added
+      postUser('/users', {
+        name: formData.name,
+        email: formData.email,
+        address: {
+          city: formData.city,
+          street: formData.street,
+        },
+        gender: formData.gender,
+        phone: formData.phone
       })
-      .catch((err) => console.log(err));
+        .then((res) => {
+          addUser(res.data.user); // adding data to Zustland for display purposes
+          console.log(res)
+        })
+        .catch((err) => console.log(err));
+    }
+
+    else { // an item is being edited
+
+      const updatedData = {
+        name: formData.name,
+        email: formData.email,
+        address: {
+          city: formData.city,
+          street: formData.street,
+        },
+        gender: formData.gender,
+        phone: formData.phone
+      }
+
+      editUser('/users', defaultData.currentID, updatedData)
+        .then((res) => {
+          editUserTemp(defaultData.currentID, { id: defaultData.currentID, ...updatedData }); // updating data in Zustland for display purposes
+          console.log(res);
+        }).catch((err) => console.log(err));
+    }
     
+    fillForm({ data: emptyFormData, currentID: 0 });
     showForm(); // hide form after submission
   }
 
   return (
     <FormContainer>
-      <Form {...layout} id='userForm' onFinish={handleSubmit}>
+      <Form {...layout} id='userForm' onFinish={handleSubmit} initialValues={defaultData.data}>
         { columns.map((inputName) => (
           inputName.dataIndex !== 'gender' ?
           <Form.Item name={inputName.dataIndex} label={inputName.title} rules={[{ required: true }]} key={inputName.key}>
@@ -81,7 +99,7 @@ function InputForm() {
       </Form>
 
         <Button type='primary' form='userForm' key='submit' htmlType='submit' style={{ margin: '10px' }}>Submit</Button>
-        <Button onClick={() => showForm()}>Cancel</Button>
+        <Button onClick={() => { showForm(); fillForm({ data: emptyFormData, currentID: 0 }) }}>Cancel</Button>
     </FormContainer>
   )
 }

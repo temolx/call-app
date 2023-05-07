@@ -17,3 +17,8 @@ export const deleteUser = async (url: string, userID: number) => {
     const { data } = await axios.delete(BASE_URL + url + '/' + userID)
     return data;
 }
+
+export const editUser = async (url: string, userID: number, newData: fakeUser) => {
+    const { data } = await axios.put(BASE_URL + url + '/' + userID, newData)
+    return data;
+}

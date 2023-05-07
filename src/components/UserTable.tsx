@@ -24,6 +24,7 @@ function UserTable() {
     const setUsers = useStore((store) => store.setUsers);
     const deleteUserTemp = useStore((store) => store.deleteUserTemp);
     const showForm = useStore((store) => store.showForm);
+    const fillForm = useStore((store) => store.fillForm);
 
     useEffect(() => {
         fetchUsers('/users')
@@ -55,13 +56,35 @@ function UserTable() {
             }).catch((err) => console.log(err));
     }
 
+    const handleEdit = (userID: number) => {
+      const currentUser = users.find((user) => user.id === userID);
+
+      if (currentUser === undefined) {
+        throw new TypeError('Typescript find error!');
+      }
+  
+      fillForm({
+        data: {
+          name: currentUser.name,
+          email: currentUser.email,
+          city: currentUser.address.city,
+          street: currentUser.address.street,
+          gender: currentUser.gender,
+          phone: currentUser.phone
+        },
+        currentID: currentUser.id
+      })
+
+      displayForm();
+    }
+
     const updatedColumns = [...columns, {
         title: '',
         dataIndex: 'actionBtns',
         key: 'actionBtns',
         render: (item: dataSourceType, record: dataSourceType) => 
           <div>
-            <Button type='primary' size='small' style={{ marginRight: '10px' }} onClick={displayForm}>Edit</Button>
+            <Button type='primary' size='small' style={{ marginRight: '10px' }} onClick={() => handleEdit(record.id)}>Edit</Button>
             <Button type='primary' size='small' danger onClick={() => handleDelete(record.id)}>Delete</Button>
           </div>
       }];
